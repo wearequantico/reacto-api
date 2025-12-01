@@ -1,11 +1,11 @@
 <?php
 
+use Wearequantico\ReactoApi\ReactoApiService;
 
 use GuzzleHttp\Client; 
 use GuzzleHttp\RequestOptions; 
 use Wrapper;
-
-if (!class_exists("ReactoApiService")) {
+ 
 /**
  * ReactoApiService 
  */
@@ -7187,6 +7187,6 @@ public function SoapXmlDecode($json)
 	}
 
 
-}}
+}
 
 ?>
