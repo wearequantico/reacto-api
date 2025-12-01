@@ -1,6 +1,6 @@
 <?php
 
-use Wearequantico\ReactoApi\ReactoApiService;
+namespace Wearequantico\ReactoApi;
 
 use GuzzleHttp\Client; 
 use GuzzleHttp\RequestOptions; 
