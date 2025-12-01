@@ -5,12 +5,11 @@ use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions; 
 use Wrapper;
 
-if (!class_exists("WebcommerceEcom2Service")) {
+if (!class_exists("ReactoApiService")) {
 /**
- * WebcommerceEcom2Service
- * @author WSDLInterpreter
+ * ReactoApiService 
  */
-class WebcommerceEcom2Service   {
+class ReactoApiService   {
 	/**
 	 * Default class map for wsdl=>php
 	 * @access private
