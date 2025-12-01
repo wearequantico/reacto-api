@@ -1,0 +1,21 @@
+{
+    "name": "wearequantico/reacto-api",
+    "autoload": {
+        "psr-4": {
+            "Wearequantico\\ReactoApi\\": "src/"
+        }
+    },
+    "description": "Reacto API",
+    "type": "library",
+    "license": "MIT",  
+    "authors": [
+        {
+            "name": "n.pasqui",
+            "email": "n.pasqui@wearequantico.it"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "guzzlehttp/guzzle": "^7.0"
+    }
+}
