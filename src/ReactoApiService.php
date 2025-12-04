@@ -35,6 +35,10 @@ class ReactoApiService   {
 		if(!isset($options['timeout'])) {
 			$options['timeout'] = 30.0;
 		}
+		
+		if(!isset($options['connect_timeout'])) {
+			$options['connect_timeout'] = 5.0;
+		}
 		$this->client_url = $wsdl;
 		$this->client = new Client($options);
 
