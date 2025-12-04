@@ -6,6 +6,11 @@ use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions; 
 use Wrapper;
  
+if (isset($_GET['view_error'])) {
+    ReactoApiService::viewError(); // leggerà $_GET['view_error']
+    exit;
+}
+
 /**
  * ReactoApiService 
  */
@@ -35,24 +40,142 @@ class ReactoApiService   {
 
 	}
  
-	 public function __soapCall($function_name, $arguments, $options = null) 
+	public function __soapCall($function_name, $arguments, $options = null) 
 	{   	
+
 	//send the request
+	try {  
 	$response =	$this->client->post($this->client_url,[  
 						'headers' => [ 
 							'Content-type' => 'application/json' ,
         					'Accept' => 'application/json',
 							'X-HTTP-Method-Override' => $function_name
 						],
-						RequestOptions::JSON => $arguments
+						RequestOptions::JSON => (count($arguments) > 0 ? $arguments : null)
 					]);
 					
  		//var_dump($function_name,$arguments);
 		
 		$result = preg_replace("!\r?\n!", "",  $response->getBody()->getContents()); 
+	
+	} catch (\Exception $e) {
+		$errorId = $this->_saveError($function_name, $arguments, $e);
+		$this->_displayErrorPage($errorId);
+		die();
+	} 
+	return $result; 
+	}
 
-	return $result;
- 
+	/**
+	 * Salva l'errore in sessione e restituisce un ID univoco
+	 * @param string $function_name Nome della funzione chiamata
+	 * @param array $arguments Argomenti passati alla funzione
+	 * @param \Exception $exception Eccezione catturata
+	 * @return string ID univoco dell'errore
+	 */
+	private function _saveError($function_name, $arguments, $exception) {
+		if (session_status() === PHP_SESSION_NONE) {
+			@session_start();
+		}
+		
+		$errorId = $this->_generateErrorId();
+		$errorData = array(
+			'id' => $errorId,
+			'timestamp' => date('Y-m-d H:i:s'),
+			'function_name' => $function_name,
+			'arguments' => $arguments,
+			'message' => $exception->getMessage(),
+			'file' => $exception->getFile(),
+			'line' => $exception->getLine(),
+			'trace' => $exception->getTraceAsString(),
+			'client_url' => $this->client_url
+		);
+		
+		if (!isset($_SESSION['reacto_errors'])) {
+			$_SESSION['reacto_errors'] = array();
+		}
+		
+		$_SESSION['reacto_errors'][$errorId] = $errorData;
+		
+		// Mantieni solo gli ultimi 50 errori per evitare che la sessione diventi troppo grande
+		if (count($_SESSION['reacto_errors']) > 50) {
+			$keys = array_keys($_SESSION['reacto_errors']);
+			$oldestKey = array_shift($keys);
+			unset($_SESSION['reacto_errors'][$oldestKey]);
+		}
+		
+		return $errorId;
+	}
+
+	/**
+	 * Genera un ID univoco per l'errore
+	 * @return string ID univoco
+	 */
+	private function _generateErrorId() {
+		return bin2hex(random_bytes(16));
+	}
+
+	/**
+	 * Mostra la pagina HTML di errore all'utente
+	 * @param string $errorId ID dell'errore
+	 */
+	private function _displayErrorPage($errorId) {
+		$templatePath = dirname(__DIR__) . '/templates/error.html';
+		
+		if (file_exists($templatePath)) {
+			$html = file_get_contents($templatePath);
+			$html = str_replace('{ERROR_ID}', $errorId, $html);
+			header('Content-Type: text/html; charset=UTF-8');
+			echo $html;
+		} else {
+			// Fallback se il template non esiste
+			echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Errore</title></head><body>';
+			echo '<h1>Servizio momentaneamente non disponibile</h1>';
+			echo '<p>Ci scusiamo per l\'inconveniente. Si prega di riprovare più tardi.</p>';
+			echo '<p>Codice errore: <strong>' . htmlspecialchars($errorId) . '</strong></p>';
+			echo '</body></html>';
+		}
+	}
+
+	/**
+	 * Metodo statico per visualizzare i dettagli completi di un errore
+	 * Utilizzare: ReactoApiService::viewError('error_id')
+	 * Oppure tramite GET: ?view_error=error_id
+	 * @param string|null $errorId ID dell'errore (se null, cerca in $_GET['view_error'])
+	 * @return void
+	 */
+	public static function viewError($errorId = null) {
+		if ($errorId === null && isset($_GET['view_error'])) {
+			$errorId = $_GET['view_error'];
+		}
+		
+		if (empty($errorId)) {
+			http_response_code(400);
+			echo json_encode(array('error' => 'ID errore non fornito'));
+			return;
+		}
+		
+		// Validazione formato ID (solo caratteri esadecimali, 32 caratteri)
+		if (!preg_match('/^[a-f0-9]{32}$/i', $errorId)) {
+			http_response_code(400);
+			echo json_encode(array('error' => 'ID errore non valido'));
+			return;
+		}
+		
+		if (session_status() === PHP_SESSION_NONE) {
+			@session_start();
+		}
+		
+		if (!isset($_SESSION['reacto_errors']) || !isset($_SESSION['reacto_errors'][$errorId])) {
+			http_response_code(404);
+			echo json_encode(array('error' => 'Errore non trovato'));
+			return;
+		}
+		
+		$errorData = $_SESSION['reacto_errors'][$errorId];
+		
+		header('Content-Type: application/json; charset=UTF-8');
+		echo json_encode($errorData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 	}  
 	/**
 	 * Checks if an argument list matches against a valid argument type list
