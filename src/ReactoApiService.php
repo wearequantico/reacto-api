@@ -1694,9 +1694,9 @@ public function SoapXmlDecode($json)
 	 * @throws Exception invalid function signature message
 	 */
 	public function GetTestateBySoggettoAgente($mixed = null) {
-		$validParameters = array("integer", "integer");
+		$validParameters = array("integer", "integer" , "dateTime" , "dateTime");
 
-		$parameterNames = array("idStore", "idSoggettoAgente");
+		$parameterNames = array("idStore", "idSoggettoAgente" , "daData" , "aData");
 		$args = $this->_checkArguments(func_get_args(), $validParameters);
 		$namedArgs = array();
 		foreach ($parameterNames as $name) {
@@ -2058,9 +2058,9 @@ public function SoapXmlDecode($json)
 	 * @throws Exception invalid function signature message
 	 */
 	public function GetTestateByUtenteTipo($mixed = null) {
-		$validParameters = array("integer", "integer", "string");
+		$validParameters = array("integer", "integer", "string" , "dateTime" , "dateTime");
 
-		$parameterNames = array("idStore", "idUtente", "tipoRecord");
+		$parameterNames = array("idStore", "idUtente", "tipoRecord", "daData", "aData");
 		$args = $this->_checkArguments(func_get_args(), $validParameters);
 		$namedArgs = array();
 		foreach ($parameterNames as $name) {
