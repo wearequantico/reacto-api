@@ -1668,9 +1668,9 @@ public function SoapXmlDecode($json)
 	 * @throws Exception invalid function signature message
 	 */
 	public function GetTestateByUtente($mixed = null) {
-		$validParameters = array("integer", "integer");
+		$validParameters = array("integer", "integer" , "dateTime" , "dateTime");
 
-		$parameterNames = array("idStore", "idUtente");
+		$parameterNames = array("idStore", "idUtente" , "daData" , "aData");
 		$args = $this->_checkArguments(func_get_args(), $validParameters);
 		$namedArgs = array();
 		foreach ($parameterNames as $name) {
