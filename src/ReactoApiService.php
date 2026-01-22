@@ -83,9 +83,10 @@ class ReactoApiService   {
 		}
 		
 		$errorId = $this->_generateErrorId();
+		$timestamp = date('Y-m-d H:i:s');
 		$errorData = array(
 			'id' => $errorId,
-			'timestamp' => date('Y-m-d H:i:s'),
+			'timestamp' => $timestamp,
 			'function_name' => $function_name,
 			'arguments' => $arguments,
 			'message' => $exception->getMessage(),
@@ -94,6 +95,22 @@ class ReactoApiService   {
 			'trace' => $exception->getTraceAsString(),
 			'client_url' => $this->client_url
 		);
+		
+		// Log nell'error log di Apache
+		$argumentsJson = json_encode($arguments, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+		$logMessage = sprintf(
+			"[REACTO_API_ERROR] ID: %s | %s | Function: %s | Message: %s | File: %s:%d | URL: %s | Arguments: %s | Trace: %s",
+			$errorId,
+			$timestamp,
+			$function_name,
+			$exception->getMessage(),
+			$exception->getFile(),
+			$exception->getLine(),
+			$this->client_url,
+			$argumentsJson,
+			str_replace(array("\r\n", "\n", "\r"), " ", $exception->getTraceAsString())
+		);
+		error_log($logMessage);
 		
 		if (!isset($_SESSION['reacto_errors'])) {
 			$_SESSION['reacto_errors'] = array();
