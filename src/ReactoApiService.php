@@ -22,8 +22,9 @@ class ReactoApiService   {
 	 */
 	private static $classmap = array(
 	);
-		private static $client;
-		private static $client_url; 
+		// proprietà d'istanza (non statiche): su PHP 8.x l'accesso con $this-> a proprietà statiche genera Notice e Deprecated
+		private $client;
+		private $client_url;
 
 	/**
 	 * Constructor using wsdl location and options array
@@ -233,7 +234,7 @@ class ReactoApiService   {
                 $validatedArgs[] = (string)$value;
                 break;
             case 'double':
-                $validatedArgs[] = (double)$value;
+                $validatedArgs[] = (float)$value; // (double) è deprecato da PHP 8.5
                 break;
             case 'dateTime': 
 				//deve essere date("c", strtotime($DATA))
@@ -288,16 +289,18 @@ public function SoapXmlDecode($json)
 		return true;
 	}
 	$obj = json_decode($json, TRUE);
-	$newarray = $obj["TableData"];
+	// isset/empty evitano i Warning di PHP 8.x quando la risposta non ha righe (TableData o Row assenti)
+	$newarray = isset($obj["TableData"]) ? $obj["TableData"] : null;
 	//i risultati singoli sono restituiti come array, quelli multipli come array di array
 	// questo controllo riporta gli array singoli alla multidimensione
-	if (isset($newarray["Row"]) && count($newarray["Row"]) == count($newarray["Row"], COUNT_RECURSIVE)) {
+	// il cast (array) evita il TypeError di count() su valori scalari in PHP 8.x (stesso esito di PHP 7.4)
+	if (isset($newarray["Row"]) && count((array)$newarray["Row"]) == count((array)$newarray["Row"], COUNT_RECURSIVE)) {
 		$newarray["Row"] = array($newarray["Row"]);
 	}
 	//risale di un livello (elimina il contenitore "Row"
-	$newarray  = $newarray["Row"];
+	$newarray  = isset($newarray["Row"]) ? $newarray["Row"] : null;
 
-	if (!$newarray[0])
+	if (empty($newarray[0]))
 		$newarray = null;
 
 	$obj = new Wrapper($newarray);

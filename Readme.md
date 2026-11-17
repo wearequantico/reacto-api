@@ -19,6 +19,12 @@ Attenzione, verificare che la versione di php sia almeno 7.4
 
 Procedere con `composer install` o `composer update`
 
+Compatibilità: PHP 7.4 – 8.x, Guzzle 6.5 oppure 7.x. La 6.5 è ammessa per i progetti che non possono
+ancora passare a Guzzle 7 (es. per librerie di pagamento ferme a Guzzle 6).
+
+Nei progetti in produzione conviene fissare la versione esatta (es. `"wearequantico/reacto-api": "v1.0.9"`)
+invece di `@stable`, così un `composer update` non porta versioni nuove senza averle testate.
+
 ## Utilizzo
 
 - In `lib/config_general.php` , sostituire l'indirizzo del webservice, in 
