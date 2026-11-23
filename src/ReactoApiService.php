@@ -200,32 +200,36 @@ class ReactoApiService   {
 		echo json_encode($errorData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 	}  
 	/**
-	 * Checks if an argument list matches against a valid argument type list
-	 * @param array $arguments The argument list to check
-	 * @param array $validParameters A list of valid argument types 
+	 * Tipizza gli argomenti secondo i tipi attesi dal metodo.
+	 *
+	 * Restituisce un valore per OGNI parametro previsto, non solo per quelli passati, così l'API REST
+	 * li riceve come li riceveva il servizio SOAP (dove un parametro omesso arrivava come elemento vuoto):
+	 * - integer/double non passati o null: 0;
+	 * - string non passate o null: "";
+	 * - dateTime non passate, null, "" o "~~NULL~~": null, che i metodi inviano come "~~NULL~~"
+	 *   (Reacto REST rifiuta la data vuota "" con un 400);
+	 * - dateTime valorizzate: "Y-m-d H:i:s" (vedi _normalizeDateTime).
+	 * I parametri con tipo vuoto (metodi senza firma nel WSDL, es. init, dammidata) restano come prima:
+	 * si inoltra solo quello che è stato passato.
+	 *
+	 * @param array $arguments argomenti passati al metodo
+	 * @param array $validParameters tipi attesi, nell'ordine dei parametri
+	 * @return array argomenti tipizzati, uno per ogni parametro previsto
 	 */
 	public function _checkArguments($arguments, $validParameters) {
 
     if (empty($validParameters)) {
         return array();
     }
-     
-    // Tipizza gli argomenti
+
     $validatedArgs = array();
-    foreach ($arguments as $index => $value) {
-        if ($index >= count($validParameters)) {
-            break; // Ignora argomenti extra
+    foreach ($validParameters as $index => $expectedType) {
+        $isPassed = array_key_exists($index, $arguments);
+        if (!$isPassed && $expectedType === '') {
+            break; // firma sconosciuta: non si inventano argomenti
         }
-        
-		//Rimosso, qualsiasi parametro abbia definito nella funzione dev'essere tipizzato
-		/*
-        if ($value === null || $value === "~~NULL~~") {
-            $validatedArgs[] = $value;
-            continue;
-        } */
-        
-        $expectedType = $validParameters[$index];
-        
+        $value = $isPassed ? $arguments[$index] : null;
+
         switch ($expectedType) {
             case 'integer':
                 $validatedArgs[] = (int)$value;
@@ -236,13 +240,8 @@ class ReactoApiService   {
             case 'double':
                 $validatedArgs[] = (float)$value; // (double) è deprecato da PHP 8.5
                 break;
-            case 'dateTime': 
-				//deve essere date("c", strtotime($DATA))
-				//controllo se è un timestamp
-				$is_timestamp = (is_numeric($value)) && ($value <= PHP_INT_MAX) && ($value >= ~PHP_INT_MAX);  
-                //ulteriore cast, non necessario
-				// $validatedArgs[] = $is_timestamp ?  date("c", (int)$value) : date("c", strtotime((string)$value)); 
-				$validatedArgs[] = $is_timestamp ?  date("c", (int)$value) : (string)$value;
+            case 'dateTime':
+                $validatedArgs[] = self::_normalizeDateTime($value);
                 break;
             case 'base64Binary':
             case 'ns1anyTypeArray':
@@ -252,9 +251,42 @@ class ReactoApiService   {
                 break;
         }
     }
-    
+
     return $validatedArgs;
 }
+
+	/**
+	 * Porta una data nel formato "Y-m-d H:i:s", l'unico con cui Reacto REST conserva l'orario
+	 * (con il formato ISO date("c") tiene solo il giorno).
+	 * Accetta: timestamp, DateTimeInterface, stringhe ISO o "Y-m-d[ H:i:s]", "d/m/Y[ H:i[:s]]" all'italiana
+	 * (strtotime le leggerebbe come m/d/Y) e qualsiasi stringa che strtotime capisce.
+	 * Restituisce null per i valori vuoti (diventa "~~NULL~~"); una stringa non interpretabile passa invariata.
+	 *
+	 * @param mixed $value data da normalizzare
+	 * @return string|null
+	 */
+	private static function _normalizeDateTime($value) {
+		if ($value === null || $value === false || $value === '' || $value === '~~NULL~~') {
+			return null;
+		}
+		if ($value instanceof \DateTimeInterface) {
+			return $value->format('Y-m-d H:i:s');
+		}
+		if (is_numeric($value)) {
+			return date('Y-m-d H:i:s', (int)$value);
+		}
+		$text = trim((string)$value);
+		if ($text === '') {
+			return null;
+		}
+		if (preg_match('#^(\d{1,2})/(\d{1,2})/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$#', $text, $m)
+			&& checkdate((int)$m[2], (int)$m[1], (int)$m[3])) {
+			return sprintf('%04d-%02d-%02d %02d:%02d:%02d', $m[3], $m[2], $m[1],
+				isset($m[4]) ? (int)$m[4] : 0, isset($m[5]) ? (int)$m[5] : 0, isset($m[6]) ? (int)$m[6] : 0);
+		}
+		$timestamp = strtotime($text);
+		return $timestamp === false ? $text : date('Y-m-d H:i:s', $timestamp);
+	}
 
 	/**
 	 * Service Call: init

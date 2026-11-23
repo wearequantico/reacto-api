@@ -22,8 +22,20 @@ Procedere con `composer install` o `composer update`
 Compatibilità: PHP 7.4 – 8.x, Guzzle 6.5 oppure 7.x. La 6.5 è ammessa per i progetti che non possono
 ancora passare a Guzzle 7 (es. per librerie di pagamento ferme a Guzzle 6).
 
-Nei progetti in produzione conviene fissare la versione esatta (es. `"wearequantico/reacto-api": "v1.0.9"`)
+Nei progetti in produzione conviene fissare la versione esatta (es. `"wearequantico/reacto-api": "v1.0.10"`)
 invece di `@stable`, così un `composer update` non porta versioni nuove senza averle testate.
+
+## Parametri e date (dalla v1.0.10)
+
+L'API REST vuole tutti i parametri di un metodo, per nome. La libreria li invia come li inviava il servizio SOAP:
+
+- un parametro non passato (o `null`) parte come `0` se è un numero e come `""` se è una stringa;
+- una data non passata, `null`, `""` o `"~~NULL~~"` parte come `~~NULL~~` (Reacto risponde 400 alla data vuota `""`);
+- le date partono nel formato `Y-m-d H:i:s`, l'unico con cui Reacto conserva l'orario (con `date("c")` tiene solo il giorno).
+  Si possono passare timestamp, `DateTime`, stringhe ISO (anche `date("c")`), `Y-m-d [H:i:s]` e `d/m/Y [H:i[:s]]`.
+
+Fino alla v1.0.9 i parametri non passati partivano tutti come `~~NULL~~` e le date in formato ISO: con alcuni metodi
+Reacto restituiva meno righe (es. `GetBanner` senza `idcatAlbero`) e le scadenze perdevano l'orario.
 
 ## Utilizzo
 
