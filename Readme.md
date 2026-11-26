@@ -22,7 +22,7 @@ Procedere con `composer install` o `composer update`
 Compatibilità: PHP 7.4 – 8.x, Guzzle 6.5 oppure 7.x. La 6.5 è ammessa per i progetti che non possono
 ancora passare a Guzzle 7 (es. per librerie di pagamento ferme a Guzzle 6).
 
-Nei progetti in produzione conviene fissare la versione esatta (es. `"wearequantico/reacto-api": "v1.0.10"`)
+Nei progetti in produzione conviene fissare la versione esatta (es. `"wearequantico/reacto-api": "v1.0.11"`)
 invece di `@stable`, così un `composer update` non porta versioni nuove senza averle testate.
 
 ## Parametri e date (dalla v1.0.10)
@@ -36,6 +36,19 @@ L'API REST vuole tutti i parametri di un metodo, per nome. La libreria li invia 
 
 Fino alla v1.0.9 i parametri non passati partivano tutti come `~~NULL~~` e le date in formato ISO: con alcuni metodi
 Reacto restituiva meno righe (es. `GetBanner` senza `idcatAlbero`) e le scadenze perdevano l'orario.
+
+## Timeout (dalla v1.0.11)
+
+Ogni richiesta a Reacto ha un timeout totale di **90 secondi** (trasferimento compreso) e di 5 secondi per la connessione.
+Fino alla v1.0.10 il timeout era di 30 secondi: troppo poco per i metodi lenti per natura (es. `GetPuntiVendita` con
+migliaia di negozi impiega 35-50 secondi), che andavano sempre in errore e non arrivavano mai in cache. Il vecchio
+client SOAP aspettava fino a 60 secondi di silenzio (`default_socket_timeout` di PHP).
+
+90 secondi resta sotto il limite di 100 secondi dopo cui Cloudflare chiude la pagina con l'errore 524.
+Se Reacto si blocca, però, ogni pagina tiene occupato un worker PHP fino a 90 secondi: un progetto che preferisce
+arrendersi prima può ridurlo dal costruttore:
+
+    $wsobj = new ReactoApiService(WSDL_LOC, array('timeout' => 30.0));
 
 ## Utilizzo
 

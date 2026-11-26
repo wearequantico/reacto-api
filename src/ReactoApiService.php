@@ -31,10 +31,14 @@ class ReactoApiService   {
 	 * @param string $wsdl WSDL location for this service
 	 * @param array $options Options for the SoapClient
 	 */
-	public function __construct($wsdl=WSDL_LOC, $options=array()) { 
+	public function __construct($wsdl=WSDL_LOC, $options=array()) {
 
+		// timeout totale della richiesta (trasferimento compreso): 90 s, sotto i 100 s dopo cui Cloudflare chiude la pagina.
+		// Alcuni metodi di Reacto sono lenti per natura (es. GetPuntiVendita con migliaia di negozi: 35-50 s) e con 30 s
+		// non arriverebbero mai a rispondere né in cache; il client SOAP aspettava fino a 60 s di silenzio (default_socket_timeout).
+		// Si può ridurre per singolo progetto: new ReactoApiService(WSDL_LOC, array('timeout' => 30.0))
 		if(!isset($options['timeout'])) {
-			$options['timeout'] = 30.0;
+			$options['timeout'] = 90.0;
 		}
 		
 		if(!isset($options['connect_timeout'])) {
